@@ -230,7 +230,6 @@ class ImageDumper():
         self.dump_assets = dump_assets
         self.dump_for_auto_labelling = dump_for_auto_labelling
         self.dump_for_submission = dump_for_submission
-
         self.viz_frequency = max(1, val_len // dump_num)
         if dump_all_images:
             self.dump_frequency = 1
@@ -306,7 +305,12 @@ class ImageDumper():
         prediction = dump_dict['assets']['predictions'][idx]
         del dump_dict['assets']['predictions']
         img_name = dump_dict['img_names'][idx]
-        
+
+        dump_dir = os.path.dirname(os.path.join(self.save_dir, img_name))
+        if not os.path.isdir(dump_dir):
+            os.makedirs(dump_dir, exist_ok=True)
+        print('Dumping to directory: %s'%(dump_dir))
+
         if self.dump_for_auto_labelling:
             # Dump Prob
             prob_fn = '{}_prob.png'.format(img_name)
@@ -318,9 +322,13 @@ class ImageDumper():
             prediction_cpu = np.array(prediction)
             label_out = np.zeros_like(prediction)
             submit_fn = '{}.png'.format(img_name)
-            for label_id, train_id in   cfg.DATASET_INST.id_to_trainid.items():
-                label_out[np.where(prediction_cpu == train_id)] = label_id
-            cv2.imwrite(os.path.join(self.save_dir, submit_fn), label_out)
+            if cfg.dump_color_submission:
+                label_out = colorize_mask_fn(prediction)
+                label_out.save(os.path.join(self.save_dir, submit_fn))
+            else:
+                for label_id, train_id in   cfg.DATASET_INST.id_to_trainid.items():
+                    label_out[np.where(prediction_cpu == train_id)] = label_id
+                cv2.imwrite(os.path.join(self.save_dir, submit_fn), label_out)
             return
 
         input_image = self.inv_normalize(input_image)
