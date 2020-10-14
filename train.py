@@ -191,6 +191,9 @@ parser.add_argument('--default_scale', type=float, default=1.0,
 parser.add_argument('--log_msinf_to_tb', action='store_true', default=False,
                     help='Log multi-scale Inference to Tensorboard')
 
+parser.add_argument('--mode_trainval', action='store_true', default=False,
+                    help='training mode. False for training set or True for train + valid sets.')
+
 parser.add_argument('--eval', type=str, default=None,
                     help=('just run evaluation, can be set to val or trn or '
                           'folder'))
@@ -223,6 +226,10 @@ parser.add_argument('--dump_all_images', action='store_true',
                     help='Dump all images, not just a subset')
 parser.add_argument('--dump_for_submission', action='store_true',
                     help='Dump assets for submission')
+parser.add_argument('--dump_with_subdir_level', type=int, default=0,
+                    help='Dump assets with sub-directories for submission if level>0')
+parser.add_argument('--dump_color_submission', action='store_true',
+                    help='Dump color assets for submission')
 parser.add_argument('--dump_for_auto_labelling', action='store_true',
                     help='Dump assets for autolabelling')
 parser.add_argument('--dump_topn_all', action='store_true', default=False,
@@ -254,6 +261,8 @@ parser.add_argument('--ocr_alpha', type=float, default=None,
                     help='set HRNet OCR auxiliary loss weight')
 parser.add_argument('--val_freq', type=int, default=1,
                     help='how often (in epochs) to run validation')
+parser.add_argument('--snapshot_freq', type=int, default=1,
+                    help='how often (in epochs) to snapshot')
 parser.add_argument('--deterministic', action='store_true',
                     default=False)
 parser.add_argument('--summary', action='store_true',
@@ -425,6 +434,12 @@ def main():
                  calc_metrics=False, dump_assets=args.dump_assets,
                  dump_all_images=True)
         return 0
+    elif args.eval == 'test':
+        # Using a folder for evaluation means to not calculate metrics
+        validate(val_loader, net, criterion=None, optim=None, epoch=0,
+                 calc_metrics=False, dump_assets=args.dump_assets,
+                 dump_all_images=True)
+        return 0
     elif args.eval is not None:
         raise 'unknown eval option {}'.format(args.eval)
 
@@ -453,8 +468,17 @@ def main():
         if args.apex:
             train_loader.sampler.set_epoch(epoch + 1)
 
-        if epoch % args.val_freq == 0:
+        if args.val_freq>0 and epoch % args.val_freq == 0:
             validate(val_loader, net, criterion_val, optim, epoch)
+
+        if args.snapshot_freq>0 and epoch % args.snapshot_freq == 0:
+            save_dir = os.path.join(args.result_dir, 'snapshots')
+            if not os.path.isdir(save_dir):
+                os.makedirs(save_dir, exist_ok=True)
+            torch.save(net.state_dict(), os.path.join(save_dir, args.arch + '_' + str(epoch) + '.pth'))
+            torch.save(optim.state_dict(), os.path.join(save_dir, args.arch + '_' +str(epoch) + '.state.pth'))
+            os.symlink(os.path.join(save_dir, args.arch + '_' +str(epoch) + '.pth'), os.path.join(save_dir, args.arch + '_last' + '.pth'))
+            os.symlink(os.path.join(save_dir, args.arch + '_' +str(epoch) + '.state.pth'), os.path.join(save_dir, args.arch + '_last' + '.state.pth'))
 
         scheduler.step()
 
