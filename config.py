@@ -49,7 +49,7 @@ cfg = __C
 __C.GLOBAL_RANK = 0
 __C.EPOCH = 0
 # Absolute path to a location to keep some large files, not in this dir.
-__C.ASSETS_PATH = '/home/dcg-adlr-atao-data.cosmos277/assets'
+__C.ASSETS_PATH = './assets'
 
 # Use class weighted loss per batch to increase loss for low pixel count classes per batch
 __C.BATCH_WEIGHTING = False
@@ -91,6 +91,8 @@ __C.DATASET.KITTI_DIR = ''
 __C.DATASET.KITTI_AUG_DIR = ''
 #Camvid Dataset Dir Location
 __C.DATASET.CAMVID_DIR = ''
+#UAVid Dataset Dir Location
+__C.DATASET.UAVID_DIR = os.path.join(__C.ASSETS_PATH, 'data/uavid')
 #Number of splits to support
 __C.DATASET.CITYSCAPES_SPLITS = 3
 __C.DATASET.MEAN = [0.485, 0.456, 0.406]
@@ -354,6 +356,9 @@ def assert_and_infer_cfg(args, make_immutable=True, train_mode=True):
 
     if args.grad_ckpt:
         __C.MODEL.GRAD_CKPT = True
+
+    __C.dump_with_subdir_level = args.dump_with_subdir_level
+    __C.dump_color_submission = args.dump_color_submission
 
     __C.GLOBAL_RANK = args.global_rank
 
