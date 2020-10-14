@@ -100,11 +100,12 @@ def eval_minibatch(data, net, criterion, val_loss, calc_metrics, args, val_idx):
 
     # input    = torch.Size([1, 3, h, w])
     # gt_image = torch.Size([1, h, w])
-    images, gt_image, img_names, scale_float = data
-    assert len(images.size()) == 4 and len(gt_image.size()) == 3
-    assert images.size()[2:] == gt_image.size()[1:]
-    batch_pixel_size = images.size(0) * images.size(2) * images.size(3)
-    input_size = images.size(2), images.size(3)
+    ori_images, gt_image, img_names, scale_float = data
+    if len(gt_image.size()) == 4:
+        # if input is the image, we construct zero gt for the image. (This should only happen for test mode, where there is no gt.)
+        gt_image = gt_image.new_zeros(gt_image.size()[:-1])
+    assert len(ori_images.size()) == 4 and len(gt_image.size()) == 3
+    assert ori_images.size()[2:] == gt_image.size()[1:]
 
     if args.do_flip:
         # By ending with flip=0, we insure that the images that are dumped
@@ -113,50 +114,82 @@ def eval_minibatch(data, net, criterion, val_loss, calc_metrics, args, val_idx):
     else:
         flips = [0]
 
+    #TODO add to config.
+    max_crop_size = [1024, 1024]
+    m_h, m_w = max_crop_size
+    n, c, h, w = ori_images.size(0), ori_images.size(1), ori_images.size(2), ori_images.size(3)
+    h_n = (h-1)//max_crop_size[0]+1
+    w_n = (w-1)//max_crop_size[1]+1
+    h_sp = (h-max_crop_size[0])//(h_n-1)
+    w_sp = (w-max_crop_size[1])//(w_n-1)
+
+    weights = None
+    full_output = None
     with torch.no_grad():
-        output = 0.0
-
-        for flip in flips:
-            for scale in scales:
-                if flip == 1:
-                    inputs = flip_tensor(images, 3)
+        for i in range(h_n):
+            for j in range(w_n):
+                output = 0.0
+                if i != h_n - 1 and j != w_n - 1:
+                    h0, h1 = [i * h_sp, i * h_sp + m_h]
+                    w0, w1 = [j * w_sp, j * w_sp + m_w]
+                elif i != h_n - 1 and j == w_n - 1:
+                    h0, h1 = [i * h_sp, i * h_sp + m_h]
+                    w0, w1 = [w-m_w, w]
+                elif i == h_n - 1 and j != w_n - 1:
+                    h0, h1 = [h-m_h, h]
+                    w0, w1 = [j * w_sp, j * w_sp + m_w]
                 else:
-                    inputs = images
+                    h0, h1 = [h-m_h, h]
+                    w0, w1 = [w-m_w, w]
+                images = ori_images[:, :, h0: h1, w0: w1]
+                batch_pixel_size = images.size(0) * images.size(2) * images.size(3)
+                input_size = images.size(2), images.size(3)
+                for flip in flips:
+                    for scale in scales:
+                        if flip == 1:
+                            inputs = flip_tensor(images, 3)
+                        else:
+                            inputs = images
 
-                infer_size = [round(sz * scale) for sz in input_size]
+                        infer_size = [round(sz * scale) for sz in input_size]
 
-                if scale != 1.0:
-                    inputs = resize_tensor(inputs, infer_size)
+                        if scale != 1.0:
+                            inputs = resize_tensor(inputs, infer_size)
 
-                inputs = {'images': inputs, 'gts': gt_image}
-                inputs = {k: v.cuda() for k, v in inputs.items()}
+                        inputs = {'images': inputs, 'gts': gt_image}
+                        inputs = {k: v.cuda() for k, v in inputs.items()}
 
-                # Expected Model outputs:
-                #   required:
-                #     'pred'  the network prediction, shape (1, 19, h, w)
-                #
-                #   optional:
-                #     'pred_*' - multi-scale predictions from mscale model
-                #     'attn_*' - multi-scale attentions from mscale model
-                output_dict = net(inputs)
+                        # Expected Model outputs:
+                        #   required:
+                        #     'pred'  the network prediction, shape (1, 19, h, w)
+                        #
+                        #   optional:
+                        #     'pred_*' - multi-scale predictions from mscale model
+                        #     'attn_*' - multi-scale attentions from mscale model
+                        output_dict = net(inputs)
 
-                _pred = output_dict['pred']
+                        _pred = output_dict['pred']
 
-                # save AVGPOOL style multi-scale output for visualizing
-                if not cfg.MODEL.MSCALE:
-                    scale_name = fmt_scale('pred', scale)
-                    output_dict[scale_name] = _pred
+                        # save AVGPOOL style multi-scale output for visualizing
+                        if not cfg.MODEL.MSCALE:
+                            scale_name = fmt_scale('pred', scale)
+                            output_dict[scale_name] = _pred
 
-                # resize tensor down to 1.0x scale in order to combine
-                # with other scales of prediction
-                if scale != 1.0:
-                    _pred = resize_tensor(_pred, input_size)
+                        # resize tensor down to 1.0x scale in order to combine
+                        # with other scales of prediction
+                        if scale != 1.0:
+                            _pred = resize_tensor(_pred, input_size)
 
-                if flip == 1:
-                    output = output + flip_tensor(_pred, 3)
-                else:
-                    output = output + _pred
-
+                        if flip == 1:
+                            output = output + flip_tensor(_pred, 3)
+                        else:
+                            output = output + _pred
+                        if full_output is None:
+                            full_output = output.new_zeros(n,output.size(1),h,w)
+                            weights = output.new_zeros((n, 1, h, w))
+                        full_output[:,:,h0:h1,w0:w1] += output
+                        weights[:,:,h0:h1,w0:w1] += output.new_ones(1)
+    output = full_output/weights
     output = output / len(scales) / len(flips)
     assert_msg = 'output_size {} gt_cuda size {}'
     gt_cuda = gt_image.cuda()
