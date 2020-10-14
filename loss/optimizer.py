@@ -125,13 +125,19 @@ def restore_snapshot(net, optimizer, snapshot, restore_optimizer_bool):
 
 
 def restore_opt(optimizer, checkpoint):
-    assert 'optimizer' in checkpoint, 'cant find optimizer in checkpoint'
-    optimizer.load_state_dict(checkpoint['optimizer'])
+    if 'optimizer' not in checkpoint:
+        optimizer.load_state_dict(checkpoint)
+    else:
+        assert 'optimizer' in checkpoint, 'cant find optimizer in checkpoint'
+        optimizer.load_state_dict(checkpoint['optimizer'])
 
 
 def restore_net(net, checkpoint):
-    assert 'state_dict' in checkpoint, 'cant find state_dict in checkpoint'
-    forgiving_state_restore(net, checkpoint['state_dict'])
+    if 'state_dict' not in checkpoint:
+        forgiving_state_restore(net, checkpoint)
+    else:
+        assert 'state_dict' in checkpoint, 'cant find state_dict in checkpoint'
+        forgiving_state_restore(net, checkpoint['state_dict'])
 
 
 def forgiving_state_restore(net, loaded_dict):
