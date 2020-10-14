@@ -143,6 +143,8 @@ def setup_loaders(args):
         val_name = 'train'
     elif args.eval == 'folder':
         val_name = 'folder'
+    elif args.eval == 'test':
+        val_name = 'test'
     else:
         raise 'unknown eval mode {}'.format(args.eval)
 
@@ -175,8 +177,12 @@ def setup_loaders(args):
         train_set = None
         train_loader = None
     else:
+        if not args.mode_trainval:
+            mode = 'train'
+        else:
+            mode = 'trainval'
         train_set = dataset_cls(
-            mode='train',
+            mode=mode,
             joint_transform_list=train_joint_transform_list,
             img_transform=train_input_transform,
             label_transform=target_train_transform)
