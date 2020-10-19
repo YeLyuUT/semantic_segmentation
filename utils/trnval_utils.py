@@ -120,8 +120,14 @@ def eval_minibatch(data, net, criterion, val_loss, calc_metrics, args, val_idx):
     n, c, h, w = ori_images.size(0), ori_images.size(1), ori_images.size(2), ori_images.size(3)
     h_n = (h-1)//max_crop_size[0]+1
     w_n = (w-1)//max_crop_size[1]+1
-    h_sp = (h-max_crop_size[0])//(h_n-1)
-    w_sp = (w-max_crop_size[1])//(w_n-1)
+    if h_n>1:
+        h_sp = (h-max_crop_size[0])//(h_n-1)
+    else:
+        h_sp = 0
+    if w_n>1:
+        w_sp = (w-max_crop_size[1])//(w_n-1)
+    else:
+        w_sp = 0
 
     weights = None
     full_output = None
