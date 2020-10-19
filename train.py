@@ -307,7 +307,12 @@ if args.apex:
     torch.cuda.set_device(args.local_rank)
     torch.distributed.init_process_group(backend='nccl',
                                          init_method='env://')
-
+def symlink(src, tgt, allow_replace=True):
+    src = os.path.abspath(src)
+    tgt = os.path.abspath(tgt)
+    if allow_replace and os.path.islink(tgt):
+        os.remove(tgt)
+    os.symlink(src, tgt)
 
 def check_termination(epoch):
     if AutoResume:
@@ -477,8 +482,8 @@ def main():
                 os.makedirs(save_dir, exist_ok=True)
             torch.save(net.state_dict(), os.path.join(save_dir, args.arch + '_' + str(epoch) + '.pth'))
             torch.save(optim.state_dict(), os.path.join(save_dir, args.arch + '_' +str(epoch) + '.state.pth'))
-            os.symlink(os.path.join(save_dir, args.arch + '_' +str(epoch) + '.pth'), os.path.join(save_dir, args.arch + '_last' + '.pth'))
-            os.symlink(os.path.join(save_dir, args.arch + '_' +str(epoch) + '.state.pth'), os.path.join(save_dir, args.arch + '_last' + '.state.pth'))
+            symlink(os.path.join(save_dir, args.arch + '_' +str(epoch) + '.pth'), os.path.join(save_dir, args.arch + '_last' + '.pth'))
+            symlink(os.path.join(save_dir, args.arch + '_' +str(epoch) + '.state.pth'), os.path.join(save_dir, args.arch + '_last' + '.state.pth'))
 
         scheduler.step()
 
