@@ -125,11 +125,68 @@ def make_dataset(root, quality, mode):
                 items.append(item)
     return items
 
+class UAVImageColorEncoder:
+  def __init__(self):
+    # color table.
+    self.clr_tab = self.createColorTable()
+    # id table.
+    id_tab = {}
+    for k, v in self.clr_tab.items():
+        id_tab[k] = self.clr2id(v)
+    self.id_tab = id_tab
+
+  def createColorTable(self):
+    clr_tab = {}
+    clr_tab['Clutter'] = [0, 0, 0]
+    clr_tab['Building'] = [128, 0, 0]
+    clr_tab['Road'] = [128, 64, 128]
+    clr_tab['Static_Car'] = [192, 0, 192]
+    clr_tab['Tree'] = [0, 128, 0]
+    clr_tab['Vegetation'] = [128, 128, 0]
+    clr_tab['Human'] = [64, 64, 0]
+    clr_tab['Moving_Car'] = [64, 0, 128]
+    return clr_tab
+
+  def colorTable(self):
+    return self.clr_tab
+
+  def clr2id(self, clr):
+    return clr[0]+clr[1]*255+clr[2]*255*255
+
+  def id2clr(self, id):
+    return [id%255, id//255%(255), id//(255*255)]
+
+  def clr2name(self, clr):
+      for name, cur_clr in self.clr_tab.items():
+          if cur_clr == list(clr):
+              return name
+      return None
+
+  #transform to uint8 integer label
+  def transform(self,label, dtype=np.int32):
+    height,width = label.shape[:2]
+    # default value is index of clutter.
+    newLabel = np.zeros((height, width), dtype=dtype)
+    id_label = label.astype(np.int64)
+    id_label = id_label[:,:,0]+id_label[:,:,1]*255+id_label[:,:,2]*255*255
+    for tid,val in enumerate(self.id_tab.values()):
+      mask = (id_label == val)
+      newLabel[mask] = tid
+    return newLabel
+
+  #transform back to 3 channels uint8 label
+  def inverse_transform(self, label):
+    label_img = np.zeros(shape=(label.shape[0], label.shape[1],3),dtype=np.uint8)
+    values = list(self.clr_tab.values())
+    for tid,val in enumerate(values):
+      mask = (label==tid)
+      label_img[mask] = val
+    return label_img
 
 class Loader(BaseLoader):
     num_classes = 8
     ignore_label = 255
-
+    clr_encoder = UAVImageColorEncoder()
     def __init__(self, mode, quality='semantic', joint_transform_list=None,
                  img_transform=None, label_transform=None, eval_folder=None):
 
@@ -168,23 +225,11 @@ class Loader(BaseLoader):
         self.build_epoch()
 
     def fill_colormap(self):
-        self.trainid_to_name={
-            0: 'Clutter',
-            1: 'Building',
-            2: 'Road',
-            3: 'Tree',
-            4: 'Vegetation',
-            5: 'Static Car',
-            6: 'Moving Car',
-            7: 'Human',}
-        self.color_mapping = [*[0,  0,   0],
-                              *[128, 0,   0],
-                              *[128, 64,  128],
-                              *[0,   128, 0],
-                              *[128, 128, 0],
-                              *[192, 0,   192],
-                              *[64,  0,   128],
-                              *[64,  64,  0]]
+        self.trainid_to_name = {}
+        self.color_mapping = []
+        for tid, (name, clr) in enumerate(self.clr_encoder.clr_tab.items()):
+            self.trainid_to_name[tid] = name
+            self.color_mapping = self.color_mapping+clr
 
     #Reload read_images function.
     def read_images(self, img_path, mask_path, mask_out=False):
@@ -196,14 +241,6 @@ class Loader(BaseLoader):
             mask = Image.open(mask_path)
 
         drop_out_mask = None
-        # This code is specific to cityscapes
-        if(cfg.DATASET.CITYSCAPES_CUSTOMCOARSE in mask_path):
-
-            gtCoarse_mask_path = mask_path.replace(cfg.DATASET.CITYSCAPES_CUSTOMCOARSE, os.path.join(cfg.DATASET.CITYSCAPES_DIR, 'gtCoarse/gtCoarse') )
-            gtCoarse_mask_path = gtCoarse_mask_path.replace('leftImg8bit','gtCoarse_labelIds')
-            gtCoarse=np.array(Image.open(gtCoarse_mask_path))
-
-
         if cfg.dump_with_subdir_level>0:
             dirs = os.path.dirname(img_path).split(os.path.sep)
             dir_name = os.path.join(*dirs[-cfg.dump_with_subdir_level:])
@@ -220,12 +257,7 @@ class Loader(BaseLoader):
         mask = mask.copy()
         for k, v in self.id_to_trainid.items():
             binary_mask = (mask == k) #+ (gtCoarse == k)
-            if ('refinement' in mask_path) and cfg.DROPOUT_COARSE_BOOST_CLASSES != None and v in cfg.DROPOUT_COARSE_BOOST_CLASSES and binary_mask.sum() > 0 and 'vidseq' not in mask_path:
-                binary_mask += (gtCoarse == k)
-                binary_mask[binary_mask >= 1] = 1
-                mask[binary_mask] = gtCoarse[binary_mask]
             mask[binary_mask] = v
-
 
         mask = Image.fromarray(mask.astype(np.uint8))
         return img, mask, img_name
