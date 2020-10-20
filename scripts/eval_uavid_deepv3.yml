@@ -1,0 +1,21 @@
+# Run Evaluation on Cityscapes with a pretrained model
+
+CMD: "python -m torch.distributed.launch --nproc_per_node=1 train.py"
+
+HPARAMS: [
+  {
+   dataset: uavid,
+   cv: 0,
+   syncbn: true,
+   apex: true,
+   fp16: true,
+   bs_val: 1,
+   eval: test,
+   #snapshot: "ASSETS_PATH/seg_weights/cityscapes_ocrnet.HRNet_Mscale_outstanding-turtle.pth",
+   arch: deepv3.DeepV3PlusW38,
+   result_dir: LOGDIR,
+   dump_for_submission: true,
+   dump_color_submission: true,
+   dump_with_subdir_level: 2,
+  },
+]
