@@ -427,9 +427,9 @@ class wrn38(nn.Module):
         x = self.mod2(self.pool2(x))   # s2
         s2_features = x
         x = self.mod3(self.pool3(x))   # s4
-        s4_features = x
         x = self.mod4(x)
         x = self.mod5(x)
+        s4_features = x
         x = self.mod6(x)
         x = self.mod7(x)
         return s2_features, s4_features, x
