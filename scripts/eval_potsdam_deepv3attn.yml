@@ -1,0 +1,22 @@
+# Run Evaluation on Cityscapes with a pretrained model
+
+CMD: "python -m torch.distributed.launch --nproc_per_node=1 train.py"
+
+HPARAMS: [
+  {
+   dataset: potsdam,
+   cv: 0,
+   syncbn: false,
+   apex: true,
+   fp16: true,
+   bs_val: 1,
+   crop_size: "1024,1024",
+   eval: test,
+   #snapshot: "logs/train_vaihingen_deepv3attn/deepv3attn.DeepV3PlusATTNW38_optimistic-quail_2020.11.23_19.54/snapshots/deepv3attn.DeepV3PlusATTNW38_80.pth",
+   arch: deepv3attn.DeepV3PlusATTNW38,
+   result_dir: LOGDIR,
+   dump_for_submission: true,
+   dump_color_submission: true,
+   dump_with_subdir_level: 2,
+  },
+]

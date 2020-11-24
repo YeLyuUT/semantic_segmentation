@@ -1,0 +1,27 @@
+# Train cityscapes using Mapillary-pretrained weights
+# Requires 32GB GPU
+# Adjust nproc_per_node according to how many GPUs you have
+
+CMD: "python -m torch.distributed.launch --nproc_per_node=1 train.py"
+
+HPARAMS: [
+  {
+   dataset: potsdam,
+   cv: 0,
+   syncbn: false,
+   apex: true,
+   fp16: true,
+   crop_size: "896,896",
+   bs_trn: 2,
+   poly_exp: 2,
+   lr: 5e-3,
+   max_epoch: 81,
+   arch: deepv3attn.DeepV3PlusATTNW38,
+   result_dir: LOGDIR,
+   RUNX.TAG: '{arch}',
+   val_freq: 0,
+   snapshot_freq: 20,
+   dump_with_subdir_level: 2,
+   mode_trainval: true,
+   },
+]

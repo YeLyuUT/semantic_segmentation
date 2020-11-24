@@ -93,6 +93,10 @@ __C.DATASET.KITTI_AUG_DIR = ''
 __C.DATASET.CAMVID_DIR = ''
 #UAVid Dataset Dir Location
 __C.DATASET.UAVID_DIR = os.path.join(__C.ASSETS_PATH, 'data/uavid')
+#Vaihingen Dataset Dir Location
+__C.DATASET.VAIHINGEN_DIR = os.path.join(__C.ASSETS_PATH, 'data/vaihingen')
+#Potsdam Dataset Dir Location
+__C.DATASET.POTSDAM_DIR = os.path.join(__C.ASSETS_PATH, 'data/potsdam')
 #Number of splits to support
 __C.DATASET.CITYSCAPES_SPLITS = 3
 __C.DATASET.MEAN = [0.485, 0.456, 0.406]
