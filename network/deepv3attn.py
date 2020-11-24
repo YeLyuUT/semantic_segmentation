@@ -54,9 +54,9 @@ class DeepV3PlusATTN(nn.Module):
         #                                  output_stride=8,
         #                                  dpc=use_dpc)
         #self.attn = APNB(in_channels=high_level_ch, out_channels=high_level_ch, key_channels=256, value_channels=256, dropout=0.5, sizes=([1]), norm_type='batchnorm', psp_size=(1, 3, 6, 8))
-        self.attn = AFNB(low_in_channels = 1024, high_in_channels=4096, out_channels=1024, key_channels=256, value_channels=1024, dropout=0.5, sizes=([1]), norm_type='batchnorm',psp_size=(1,3,6,8))
+        self.attn = AFNB(low_in_channels = 2048, high_in_channels=4096, out_channels=2048, key_channels=1024, value_channels=2048, dropout=0.5, sizes=([1]), norm_type='batchnorm',psp_size=(1,3,6,8))
         self.bot_fine = nn.Conv2d(s2_ch, 48, kernel_size=1, bias=False)
-        self.bot_aspp = nn.Conv2d(1024, 256, kernel_size=1, bias=False)
+        self.bot_aspp = nn.Conv2d(2048, 256, kernel_size=1, bias=False)
         self.final = nn.Sequential(
             nn.Conv2d(256 + 48, 256, kernel_size=3, padding=1, bias=False),
             Norm2d(256),
@@ -143,7 +143,7 @@ class DeepV3ATTN(nn.Module):
         #                                  output_stride=output_stride,
         #                                  dpc=use_dpc)
         #self.attn = APNB(in_channels=high_level_ch, out_channels=high_level_ch, key_channels=256, value_channels=256, dropout=0.5, sizes=([1]), norm_type='batchnorm', psp_size=(1,3,6,8))
-        self.attn = AFNB(low_in_channels = 1024, high_in_channels=4096, out_channels=1024, key_channels=1024, value_channels=4096, dropout=0.5, sizes=([1]), norm_type='batchnorm',psp_size=(1,3,6,8))
+        self.attn = AFNB(low_in_channels = 2048, high_in_channels=4096, out_channels=2048, key_channels=1024, value_channels=2048, dropout=0.5, sizes=([1]), norm_type='batchnorm',psp_size=(1,3,6,8))
         self.final = make_seg_head(in_ch=high_level_ch, out_ch=num_classes)
 
         initialize_weights(self.attn)
