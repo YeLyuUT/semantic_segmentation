@@ -50,7 +50,7 @@ class MscaleBase(nn.Module):
     def _fwd(self, x, aspp_in=None):
         pass
 
-    def recurse_fuse_fwd(self, x, scales, aspp_lo=None, aspp_attn=None):
+    def recurse_fuse_fwd(self, x, scales, aspp_lo=None, attn_lo=None):
         """
         recursive eval for n-scales
 
@@ -67,7 +67,7 @@ class MscaleBase(nn.Module):
             x_resize = x
         else:
             x_resize = ResizeX(x, this_scale)
-        p, attn, aspp = self._fwd(x_resize, aspp_attn=aspp_attn, aspp_lo=aspp_lo)
+        p, attn, aspp = self._fwd(x_resize, attn_lo=attn_lo, aspp_lo=aspp_lo)
 
         if this_scale == 1.0:
             p_1x = p
@@ -81,7 +81,7 @@ class MscaleBase(nn.Module):
         else:
             output = attn_1x * p_1x
             p_next, _ = self.recurse_fuse_fwd(x, scales,
-                                              aspp_attn=attn, aspp_lo=aspp)
+                                              attn_lo=attn, aspp_lo=aspp)
             output += (1 - attn_1x) * p_next
         return output, attn_1x
 
