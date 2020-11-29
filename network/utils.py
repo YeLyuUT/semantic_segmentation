@@ -40,6 +40,7 @@ from network.wider_resnet import wrn38
 from network.SEresnext import se_resnext50_32x4d, se_resnext101_32x4d
 from network.Resnet import resnet50, resnet101
 import network.hrnetv2 as hrnetv2
+#from network.axialnet import axial50s, axial50m, axial50l
 
 from runx.logx import logx
 from config import cfg
@@ -97,7 +98,6 @@ class get_resnet(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
         return s2_features, s4_features, x
-
 
 def get_trunk(trunk_name, output_stride=8):
     """
@@ -159,6 +159,7 @@ class ConvBnRelu(nn.Module):
         return x
 
 
+
 class AtrousSpatialPyramidPoolingModule(nn.Module):
     """
     operations performed:
@@ -172,7 +173,7 @@ class AtrousSpatialPyramidPoolingModule(nn.Module):
     """
 
     def __init__(self, in_dim, reduction_dim=256, output_stride=16,
-                 rates=(6, 12, 18)):
+                 rates=(6, 12, 18), img_norm=True):
         super(AtrousSpatialPyramidPoolingModule, self).__init__()
 
         if output_stride == 8:
@@ -200,9 +201,15 @@ class AtrousSpatialPyramidPoolingModule(nn.Module):
 
         # img level features
         self.img_pooling = nn.AdaptiveAvgPool2d(1)
-        self.img_conv = nn.Sequential(
-            nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
-            Norm2d(reduction_dim), nn.ReLU(inplace=True))
+        if img_norm:
+            self.img_conv = nn.Sequential(
+                nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
+                Norm2d(reduction_dim),
+                nn.ReLU(inplace=True))
+        else:
+            self.img_conv = nn.Sequential(
+                nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=True),
+                nn.ReLU(inplace=True))
 
     def forward(self, x):
         x_size = x.size()
@@ -298,7 +305,7 @@ class DPC(nn.Module):
         return out
 
 
-def get_aspp(high_level_ch, bottleneck_ch, output_stride, dpc=False):
+def get_aspp(high_level_ch, bottleneck_ch, output_stride, dpc=False, img_norm=True):
     """
     Create aspp block
     """
@@ -306,7 +313,7 @@ def get_aspp(high_level_ch, bottleneck_ch, output_stride, dpc=False):
         aspp = DPC(high_level_ch, bottleneck_ch, output_stride=output_stride)
     else:
         aspp = AtrousSpatialPyramidPoolingModule(high_level_ch, bottleneck_ch,
-                                                 output_stride=output_stride)
+                                                 output_stride=output_stride,img_norm=img_norm)
     aspp_out_ch = 5 * bottleneck_ch
     return aspp, aspp_out_ch
 
