@@ -38,6 +38,7 @@ from network.utils import make_seg_head, make_attn_head
 from utils.misc import fmt_scale
 from network.apnb import APNB
 from network.afnb import AFNB
+from network.asnb import ASNB
 
 class MscaleBase(nn.Module):
     """
@@ -248,7 +249,7 @@ class MscaleV3Plus(MscaleBase):
                                           img_norm = False)
         self.bot_fine = nn.Conv2d(s2_ch, 48, kernel_size=1, bias=False)
         self.bot_aspp = nn.Conv2d(aspp_out_ch, 256, kernel_size=1, bias=False)
-        self.afnb = AFNB(low_in_channels = 256, high_in_channels=256+48, out_channels=256 + 48, key_channels=64, value_channels=128, dropout=.5, sizes=([1]), norm_type='batchnorm',psp_size=(1,3,6,8))
+        self.asnb = ASNB(low_in_channels = 256, high_in_channels=256+48, out_channels=256 + 48, key_channels=64, value_channels=128, dropout=.5, sizes=([1]), norm_type='batchnorm',attn_scale=0.25)
         # Semantic segmentation prediction head
         bot_ch = cfg.MODEL.SEGATTN_BOT_CH
         self.final = nn.Sequential(
@@ -315,7 +316,7 @@ class MscaleV3Plus(MscaleBase):
         cat_s4 = torch.cat(cat_s4, 1)
         cat_s4_attn = torch.cat(cat_s4_attn, 1)
         # spatial attention here.
-        cat_s4 = self.afnb(conv_aspp_, cat_s4)
+        cat_s4 = self.asnb(conv_aspp_, cat_s4)
 
         final = self.final(cat_s4)
         scale_attn = self.scale_attn(cat_s4_attn)
