@@ -248,7 +248,7 @@ class MscaleV3Plus(MscaleBase):
                                           img_norm = False)
         self.bot_fine = nn.Conv2d(s2_ch, 48, kernel_size=1, bias=False)
         self.bot_aspp = nn.Conv2d(aspp_out_ch, 256, kernel_size=1, bias=False)
-        self.afnb = AFNB(low_in_channels = 256, high_in_channels=256+48, out_channels=256 + 48, key_channels=64, value_channels=128, dropout=1.0, sizes=([1]), norm_type='batchnorm',psp_size=(1,3,6,8))
+        self.afnb = AFNB(low_in_channels = 256, high_in_channels=256+48, out_channels=256 + 48, key_channels=64, value_channels=128, dropout=.5, sizes=([1]), norm_type='batchnorm',psp_size=(1,3,6,8))
         # Semantic segmentation prediction head
         bot_ch = cfg.MODEL.SEGATTN_BOT_CH
         self.final = nn.Sequential(
