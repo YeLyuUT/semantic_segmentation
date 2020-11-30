@@ -249,7 +249,7 @@ class MscaleV3Plus(MscaleBase):
                                           img_norm = False)
         self.bot_fine = nn.Conv2d(s2_ch, 48, kernel_size=1, bias=False)
         self.bot_aspp = nn.Conv2d(aspp_out_ch, 256, kernel_size=1, bias=False)
-        self.asnb = ASNB(low_in_channels = 256, high_in_channels=256+48, out_channels=256 + 48, key_channels=64, value_channels=128, dropout=.5, sizes=([1]), norm_type='batchnorm',attn_scale=0.25)
+        self.asnb = ASNB(low_in_channels = 256, high_in_channels=256, out_channels=256, key_channels=128, value_channels=256, dropout=.5, sizes=([1]), norm_type='batchnorm',attn_scale=0.25)
         # Semantic segmentation prediction head
         bot_ch = cfg.MODEL.SEGATTN_BOT_CH
         self.final = nn.Sequential(
@@ -309,14 +309,14 @@ class MscaleV3Plus(MscaleBase):
             aspp = aspp_attn * aspp_lo + (1 - aspp_attn) * aspp
 
         conv_aspp_ = self.bot_aspp(aspp)
+        # spatial attention here.
+        conv_aspp_ = self.asnb(conv_aspp_, conv_aspp_)
         conv_s2 = self.bot_fine(s2_features)
         conv_aspp = Upsample(conv_aspp_, s2_features.size()[2:])
         cat_s4 = [conv_s2, conv_aspp]
         cat_s4_attn = [conv_s2, conv_aspp]
         cat_s4 = torch.cat(cat_s4, 1)
         cat_s4_attn = torch.cat(cat_s4_attn, 1)
-        # spatial attention here.
-        cat_s4 = self.asnb(conv_aspp_, cat_s4)
 
         final = self.final(cat_s4)
         scale_attn = self.scale_attn(cat_s4_attn)
