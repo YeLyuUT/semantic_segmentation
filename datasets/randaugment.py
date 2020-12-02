@@ -69,7 +69,7 @@ def TranslateYAbs(pair, v):  # [-150, 150] => percentage: [-0.45, 0.45]
 
 
 def Rotate(pair, v):  # [-30, 30]
-    assert -30 <= v <= 30
+    assert -90 <= v <= 90
     if random.random() > 0.5:
         v = -v
     img, mask = pair
@@ -93,10 +93,12 @@ def Equalize(pair, _):
     return ImageOps.equalize(img), mask
 
 
-def Flip(pair, _):  # not from the paper
+def Flip(pair, v):  # not from the paper
     img, mask = pair
-    return ImageOps.mirror(img), ImageOps.mirror(mask)
-
+    if v>0:
+        return ImageOps.mirror(img), ImageOps.mirror(mask)
+    else:
+        return img, mask
 
 def Solarize(pair, v):  # [0, 256]
     img, mask = pair
@@ -178,6 +180,7 @@ def Identity(pair, v):
 
 def augment_list():  # 16 oeprations and their ranges
     # https://github.com/google-research/uda/blob/master/image/randaugment/policies.py#L57
+    '''
     l = [
         (Identity, 0., 1.0),
         (ShearX, 0., 0.3),  # 0
@@ -197,6 +200,11 @@ def augment_list():  # 16 oeprations and their ranges
         # (Cutout, 0, 0.2),  # 14
         # (SamplePairing(imgs), 0, 0.4),  # 15
         # (Flip, 1, 1),
+    ]
+    '''
+    l = [
+        (Rotate, 0, 90),  # 4
+        (Flip, -1, 1),
     ]
     return l
 
@@ -255,9 +263,10 @@ class RandAugment:
 
     def __call__(self, img, mask):
         pair = img, mask
-        ops = random.choices(self.augment_list, k=self.n)
+        #ops = random.choices(self.augment_list, k=self.n)
+        ops = self.augment_list
         for op, minval, maxval in ops:
-            val = (float(self.m) / 30) * float(maxval - minval) + minval
+            val = random.uniform(0, (float(self.m) / 30)) * float(maxval - minval) + minval
             pair = op(pair, val)
 
         return pair
