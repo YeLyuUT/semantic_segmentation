@@ -8,7 +8,7 @@ from .module_helper import ModuleHelper
 
 class ScalePoolingModule(nn.Module):
     # (1, 2, 3, 6)
-    def __init__(self, scale=0.125, dimension=2):
+    def __init__(self, scale=0.25, dimension=2):
         super(ScalePoolingModule, self).__init__()
         self.scale = scale
         self.dimension = dimension
@@ -42,7 +42,7 @@ class _SelfAttentionBlock(nn.Module):
         N X C X H X W
         position-aware context features.(w/o concate or add with the input)
     '''
-    def __init__(self, low_in_channels, high_in_channels, key_channels, value_channels, out_channels=None, scale=1, norm_type=None, attn_scale=0.125):
+    def __init__(self, low_in_channels, high_in_channels, key_channels, value_channels, out_channels=None, scale=1, norm_type=None, attn_scale=0.25):
         super(_SelfAttentionBlock, self).__init__()
         self.scale = scale
         self.in_channels = low_in_channels
@@ -96,7 +96,7 @@ class _SelfAttentionBlock(nn.Module):
 
 
 class SelfAttentionBlock2D(_SelfAttentionBlock):
-    def __init__(self, low_in_channels, high_in_channels, key_channels, value_channels, out_channels=None, scale=1, norm_type=None, attn_scale=0.125):
+    def __init__(self, low_in_channels, high_in_channels, key_channels, value_channels, out_channels=None, scale=1, norm_type=None, attn_scale=0.25):
         super(SelfAttentionBlock2D, self).__init__(low_in_channels,
                                                    high_in_channels,
                                                    key_channels,
@@ -119,7 +119,7 @@ class ASNB(nn.Module):
     """
 
     def __init__(self, low_in_channels, high_in_channels, out_channels, key_channels, value_channels, dropout,
-                 sizes=([1]), norm_type=None, attn_scale=0.125):
+                 sizes=([1]), norm_type=None, attn_scale=0.25):
         super(ASNB, self).__init__()
         self.stages = []
         self.norm_type = norm_type
