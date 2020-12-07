@@ -120,7 +120,9 @@ def eval_minibatch(data, net, criterion, val_loss, calc_metrics, args, val_idx):
     #TODO add to config.
     max_crop_size = (args.crop_size[0], args.crop_size[1])
     m_h, m_w = max_crop_size
-    h_sp, w_sp = (args.crop_overlap[0], args.crop_overlap[1])
+    crop_overlaps = (args.crop_overlap[0], args.crop_overlap[1])
+    h_sp, w_sp = max_crop_size[0] - crop_overlaps[0], max_crop_size[1] - crop_overlaps[1]
+    assert h_sp>0 and w_sp>0, "crop size should be larger than crop overlaps."
 
     output = 0.0
     with torch.no_grad():
@@ -138,11 +140,17 @@ def eval_minibatch(data, net, criterion, val_loss, calc_metrics, args, val_idx):
 
                 n, c, h, w = inputs.size(0), inputs.size(1), inputs.size(2), inputs.size(3)
 
-                h_n = (h - 1) // max_crop_size[0] + 1
-                w_n = (w - 1) // max_crop_size[1] + 1
-                if h_n > 1 and h_sp==0:
+                if crop_overlaps[0]>0:
+                    h_n = (h - max_crop_size[0] - 1) // h_sp + 2
+                else:
+                    h_n = (h - 1) // max_crop_size[0] + 1
+                if crop_overlaps[1]>0:
+                    w_n = (w - max_crop_size[1] - 1) // w_sp + 2
+                else:
+                    w_n = (w - 1) // max_crop_size[1] + 1
+                if h_n > 1 and crop_overlaps[0]==0:
                     h_sp = (h - max_crop_size[0]) // (h_n - 1)
-                if w_n > 1 and w_sp==0:
+                if w_n > 1 and crop_overlaps[1]==0:
                     w_sp = (w - max_crop_size[1]) // (w_n - 1)
 
                 full_output_dict = None
