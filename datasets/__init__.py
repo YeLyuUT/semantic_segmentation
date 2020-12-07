@@ -69,6 +69,10 @@ def setup_loaders(args):
         args.crop_size = [int(x) for x in args.crop_size.split(',')]
     else:
         args.crop_size = int(args.crop_size)
+    if ',' in args.crop_overlap:
+        args.crop_overlap = [int(x) for x in args.crop_overlap.split(',')]
+    else:
+        args.crop_overlap = [int(args.crop_overlap), int(args.crop_overlap)]
     train_joint_transform_list = [
         # TODO FIXME: move these hparams into cfg
         joint_transforms.RandomSizeAndCrop(args.crop_size,
