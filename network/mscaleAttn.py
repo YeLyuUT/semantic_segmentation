@@ -39,6 +39,7 @@ from utils.misc import fmt_scale
 from network.apnb import APNB
 from network.afnb import AFNB
 from network.asnb import ASNB
+from network.adnb import ADNB
 
 class MscaleBase(nn.Module):
     """
@@ -249,7 +250,8 @@ class MscaleV3Plus(MscaleBase):
                                           img_norm = False)
         self.bot_fine = nn.Conv2d(s2_ch, 48, kernel_size=1, bias=False)
         self.bot_aspp = nn.Conv2d(aspp_out_ch, 256, kernel_size=1, bias=False)
-        self.asnb = ASNB(low_in_channels = 48, high_in_channels=256, out_channels=256, key_channels=64, value_channels=256, dropout=0., sizes=([1]), norm_type='batchnorm',attn_scale=0.25)
+        #self.asnb = ASNB(low_in_channels = 48, high_in_channels=256, out_channels=256, key_channels=64, value_channels=256, dropout=0., sizes=([1]), norm_type='batchnorm',attn_scale=0.25)
+        self.adnb = ADNB(d_model=256, nhead=8, num_encoder_layers=2, dim_feedforward=256, dropout=0.5, activation="relu", num_feature_levels=1, enc_n_points=4)
         # Semantic segmentation prediction head
         bot_ch = cfg.MODEL.SEGATTN_BOT_CH
         self.final = nn.Sequential(
@@ -311,8 +313,16 @@ class MscaleV3Plus(MscaleBase):
         conv_aspp_ = self.bot_aspp(aspp)
         conv_s2 = self.bot_fine(s2_features)
         # spatial attention here.
-        conv_aspp_ = self.asnb(conv_s2, conv_aspp_)
+        #conv_aspp_ = self.asnb(conv_s2, conv_aspp_)
+        conv_aspp_ = Upsample(conv_aspp_, conv_aspp_.size()[2:])
+        conv_aspp_shape = conv_aspp_.shape
+        conv_aspp_ = self.adnb([conv_aspp_],
+                              masks=[conv_aspp_.new_zeros((conv_aspp_.shape[0], conv_aspp_.shape[2], conv_aspp_.shape[3]), dtype=torch.bool)],
+                              pos_embeds=[None])
+        conv_aspp_ = conv_aspp_.transpose(-1, -2).view(conv_aspp_shape)
+
         conv_aspp = Upsample(conv_aspp_, s2_features.size()[2:])
+
         cat_s4 = [conv_s2, conv_aspp]
         cat_s4_attn = [conv_s2, conv_aspp]
         cat_s4 = torch.cat(cat_s4, 1)
