@@ -120,6 +120,7 @@ def eval_minibatch(data, net, criterion, val_loss, calc_metrics, args, val_idx):
     #TODO add to config.
     max_crop_size = (args.crop_size[0], args.crop_size[1])
     m_h, m_w = max_crop_size
+    h_sp, w_sp = (args.crop_overlap[0], args.crop_overlap[1])
 
     output = 0.0
     with torch.no_grad():
@@ -139,14 +140,10 @@ def eval_minibatch(data, net, criterion, val_loss, calc_metrics, args, val_idx):
 
                 h_n = (h - 1) // max_crop_size[0] + 1
                 w_n = (w - 1) // max_crop_size[1] + 1
-                if h_n > 1:
+                if h_n > 1 and h_sp==0:
                     h_sp = (h - max_crop_size[0]) // (h_n - 1)
-                else:
-                    h_sp = 0
-                if w_n > 1:
+                if w_n > 1 and w_sp==0:
                     w_sp = (w - max_crop_size[1]) // (w_n - 1)
-                else:
-                    w_sp = 0
 
                 full_output_dict = None
                 weights = None

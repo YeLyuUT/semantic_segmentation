@@ -148,6 +148,8 @@ parser.add_argument('--bs_val', type=int, default=1,
                     help='Batch size for Validation per gpu')
 parser.add_argument('--crop_size', type=str, default='896',
                     help=('training crop size: either scalar or h,w'))
+parser.add_argument('--crop_overlap', type=str, default='0,0',
+                    help=('crop overlap for testing: either scalar or h,w'))
 parser.add_argument('--scale_min', type=float, default=0.5,
                     help='dynamically scale training images down to this size')
 parser.add_argument('--scale_max', type=float, default=2.0,
