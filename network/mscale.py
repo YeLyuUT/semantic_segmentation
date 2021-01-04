@@ -67,21 +67,22 @@ class MscaleBase(nn.Module):
             x_resize = x
         else:
             x_resize = ResizeX(x, this_scale)
-        p, attn, aspp = self._fwd(x_resize, attn_lo=attn_lo, aspp_lo=aspp_lo)
+        #p, attn, aspp = self._fwd(x_resize, attn_lo=attn_lo, aspp_lo=aspp_lo)
+        p, attn_lo, aspp_attn, aspp_lo = self._fwd(x_resize, aspp_lo=aspp_lo, aspp_attn=attn_lo)
 
         if this_scale == 1.0:
             p_1x = p
-            attn_1x = attn
+            attn_1x = attn_lo
         else:
             p_1x = scale_as(p, x)
-            attn_1x = scale_as(attn, x)
+            attn_1x = scale_as(attn_lo, x)
 
         if len(scales) == 0:
             output = p_1x
         else:
             output = attn_1x * p_1x
             p_next, _ = self.recurse_fuse_fwd(x, scales,
-                                              attn_lo=attn, aspp_lo=aspp)
+                                              attn_lo=aspp_attn, aspp_lo=aspp_lo)
             output += (1 - attn_1x) * p_next
         return output, attn_1x
 
