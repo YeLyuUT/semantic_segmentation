@@ -235,11 +235,12 @@ class MscaleV3Plus(MscaleBase):
     DeepLabV3Plus-based mscale segmentation model
     """
     def __init__(self, num_classes, trunk='wrn38', criterion=None,
-                 use_dpc=False, fuse_aspp=False, attn_2b=False):
+                 use_dpc=False, fuse_aspp=False, attn_2b=False, attn_cls=False):
         super(MscaleV3Plus, self).__init__()
         self.criterion = criterion
         self.fuse_aspp = fuse_aspp
         self.attn_2b = attn_2b
+        self.attn_cls = attn_cls
         self.backbone, s2_ch, _s4_ch, high_level_ch = get_trunk(trunk)
         self.aspp, aspp_out_ch = get_aspp(high_level_ch,
                                           bottleneck_ch=256,
@@ -263,7 +264,10 @@ class MscaleV3Plus(MscaleBase):
         if self.attn_2b:
             attn_ch = 2
         else:
-            attn_ch = 1
+            if self.attn_cls:
+                attn_ch = num_classes
+            else:
+                attn_ch = 1
 
         scale_in_ch = 256 + 48
 
@@ -341,6 +345,13 @@ def DeepV3W38Fuse(num_classes, criterion):
     return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
                         fuse_aspp=True)
 
+def DeepV3W38_ATTNCLS(num_classes, criterion):
+    return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
+                        attn_cls=True)
+
+def DeepV3W38Fuse_ATTNCLS(num_classes, criterion):
+    return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
+                        fuse_aspp=True, attn_cls=True)
 
 def DeepV3W38Fuse2(num_classes, criterion):
     return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
