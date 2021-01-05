@@ -242,11 +242,13 @@ class MscaleV3Plus(MscaleBase):
     DeepLabV3Plus-based mscale segmentation model
     """
     def __init__(self, num_classes, trunk='wrn38', criterion=None,
-                 use_dpc=False, fuse_aspp=False, attn_2b=False):
+                 use_dpc=False, fuse_aspp=False, attn_2b=False, attn_cls=False, feature_expansion=4):
         super(MscaleV3Plus, self).__init__()
         self.criterion = criterion
         self.fuse_aspp = fuse_aspp
         self.attn_2b = attn_2b
+        self.attn_cls = attn_cls
+        self.feature_expansion = feature_expansion
         self.backbone, s2_ch, _s4_ch, high_level_ch = get_trunk(trunk)
         self.aspp, aspp_out_ch = get_aspp(high_level_ch,
                                           bottleneck_ch=256,
@@ -264,17 +266,20 @@ class MscaleV3Plus(MscaleBase):
             nn.Conv2d(bot_ch, bot_ch, kernel_size=3, padding=1, bias=False),
             Norm2d(bot_ch),
             nn.ReLU(inplace=True),
-            nn.Conv2d(bot_ch, 64, kernel_size=1, bias=False),
+            nn.Conv2d(bot_ch, num_classes*self.feature_expansion, kernel_size=1, bias=False),
             )
         self.classifier = nn.Sequential(
-            nn.Conv2d(64, num_classes, kernel_size=1, bias=False),
+            nn.Conv2d(num_classes*self.feature_expansion, num_classes, kernel_size=1, bias=False),
         )
 
         # Scale-attention prediction head
         if self.attn_2b:
             attn_ch = 2
         else:
-            attn_ch = 1
+            if self.attn_cls:
+                attn_ch = num_classes*self.feature_expansion
+            else:
+                attn_ch = 1
 
         scale_in_ch = 256 + 48
 
@@ -329,7 +334,7 @@ class MscaleV3Plus(MscaleBase):
 
         out = Upsample(final, x_size[2:])
         scale_attn = Upsample(scale_attn, x_size[2:])
-
+        
         if self.attn_2b:
             logit_attn = scale_attn[:, 0:1, :, :]
             aspp_attn = scale_attn[:, 1:, :, :]
@@ -352,6 +357,13 @@ def DeepV3W38Fuse(num_classes, criterion):
     return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
                         fuse_aspp=True)
 
+def DeepV3W38_ATTNCLS(num_classes, criterion):
+    return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
+                        attn_cls=True)
+
+def DeepV3W38Fuse_ATTNCLS(num_classes, criterion):
+    return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
+                        fuse_aspp=True, attn_cls=True)
 
 def DeepV3W38Fuse2(num_classes, criterion):
     return MscaleV3Plus(num_classes, trunk='wrn38', criterion=criterion,
