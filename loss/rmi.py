@@ -29,6 +29,26 @@ _IS_SUM = 1			# sum the loss per channel
 
 __all__ = ['RMILoss']
 
+class OhemCELoss(nn.Module):
+    def __init__(self, thresh):
+        super(OhemCELoss, self).__init__()
+        self.thresh = -torch.log(torch.tensor(thresh, requires_grad=False, dtype=torch.float))
+
+    def forward(self, logits_flat, valid_onehot_label_flat, label_mask_flat):
+        binary_loss = F.binary_cross_entropy_with_logits(logits_flat,
+                                                         target=valid_onehot_label_flat,
+                                                         weight=label_mask_flat.unsqueeze(dim=1),
+                                                         reduction='none')
+        valid_pixels = torch.sum(label_mask_flat)
+        n_min = valid_pixels // 16
+        thresh = self.thresh.to(binary_loss.device)
+        loss_hard = binary_loss[binary_loss > thresh]
+        if loss_hard.numel() < n_min:
+            loss_hard, _ = binary_loss.topk(n_min)
+            valid_pixels = n_min
+            binary_loss = loss_hard
+        bce_loss = torch.div(torch.sum(binary_loss), valid_pixels + 1.0)
+        return bce_loss
 
 class RMILoss(nn.Module):
     """
@@ -44,7 +64,8 @@ class RMILoss(nn.Module):
                  rmi_pool_stride=4,
                  loss_weight_lambda=0.5,
                  lambda_way=1,
-                 ignore_index=255):
+                 ignore_index=255,
+                 with_ohem=True):
         super(RMILoss, self).__init__()
         self.num_classes = num_classes
         # radius choices
@@ -66,6 +87,9 @@ class RMILoss(nn.Module):
         self.kernel_padding = self.rmi_pool_size // 2
         # ignore class
         self.ignore_index = ignore_index
+        self.with_ohem = with_ohem
+        if self.with_ohem:
+            self.ohem_loss = OhemCELoss(thresh=0.7)
 
     def forward(self, logits_4D, labels_4D, do_rmi=True):
         # explicitly disable fp16 mode because torch.cholesky and
@@ -106,12 +130,16 @@ class RMILoss(nn.Module):
         logits_flat = logits_4D.permute(0, 2, 3, 1).contiguous().view([-1, self.num_classes])
 
         # binary loss, multiplied by the not_ignore_mask
-        valid_pixels = torch.sum(label_mask_flat)
-        binary_loss = F.binary_cross_entropy_with_logits(logits_flat,
-                                                         target=valid_onehot_label_flat,
-                                                         weight=label_mask_flat.unsqueeze(dim=1),
-                                                         reduction='sum')
-        bce_loss = torch.div(binary_loss, valid_pixels + 1.0)
+        if not self.with_ohem:
+            valid_pixels = torch.sum(label_mask_flat)
+            binary_loss = F.binary_cross_entropy_with_logits(logits_flat,
+                                                             target=valid_onehot_label_flat,
+                                                             weight=label_mask_flat.unsqueeze(dim=1),
+                                                             reduction='sum')
+            bce_loss = torch.div(binary_loss, valid_pixels + 1.0)
+        else:
+            bce_loss = self.ohem_loss(logits_flat, valid_onehot_label_flat, label_mask_flat)
+
         if not do_rmi:
             return bce_loss
 
