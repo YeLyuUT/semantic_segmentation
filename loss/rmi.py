@@ -40,7 +40,7 @@ class OhemCELoss(nn.Module):
                                                          weight=label_mask_flat.unsqueeze(dim=1),
                                                          reduction='none')
         valid_pixels = torch.sum(label_mask_flat)
-        n_min = int(valid_pixels // 16)
+        n_min = max(int(valid_pixels // 16), 1)
         thresh = self.thresh.to(binary_loss.device)
         loss_hard = binary_loss[binary_loss > thresh]
         if loss_hard.numel() < n_min:
