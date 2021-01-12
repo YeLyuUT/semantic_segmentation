@@ -153,15 +153,14 @@ class MscaleBase(nn.Module):
         attn_lo, aspp_attn_lo = self._fwd_attn(x_lo, cat_s4_attn_lo)
         attn_1x, aspp_attn_1x = self._fwd_attn_rev(x_1x, cat_s4_attn_1x)
         #low 2 high
-        c = attn_lo.shape[1]
-        p_lo = attn_lo * pred_05x.narrow(1,0,int(c/2))
+        p_lo = attn_lo * pred_05x.narrow(1,0,self.attn_ch)
         p_lo = scale_as(p_lo, p_1x)
         logit_attn = scale_as(attn_lo, p_1x)
-        joint_pred1 = p_lo + (1 - logit_attn) * p_1x
+        joint_pred1 = p_lo + (1 - logit_attn) * p_1x.narrow(1,0,self.attn_ch)
         #high 2 low
-        p_hi = attn_1x * p_1x.narrow(1,int(c/2),int(c/2))
+        p_hi = attn_1x * p_1x.narrow(1,self.attn_ch,self.attn_ch)
         p_lo = scale_as(pred_05x, p_1x)
-        joint_pred2 = p_hi + (1 - attn_1x) * p_lo
+        joint_pred2 = p_hi + (1 - attn_1x) * p_lo.narrow(1,self.attn_ch,self.attn_ch)
 
         joint_pred = self.classifier(torch.cat([joint_pred1, joint_pred2], dim=1))
         pred_05x = self.classifier(pred_05x)
@@ -243,9 +242,10 @@ class MscaleV3Plus(MscaleBase):
                 attn_ch = 1
 
         scale_in_ch = 256 + 48
-
-        self.scale_attn = make_attn_head(in_ch=int(scale_in_ch/2), out_ch=int(attn_ch/2))
-        self.scale_attn_rev = make_attn_head(in_ch=int(scale_in_ch/2), out_ch=int(attn_ch/2))
+        self.scale_in_ch = scale_in_ch
+        self.attn_ch = int(attn_ch / 2)
+        self.scale_attn = make_attn_head(in_ch=self.scale_in_ch, out_ch=self.attn_ch)
+        self.scale_attn_rev = make_attn_head(in_ch=self.scale_in_ch, out_ch=self.attn_ch)
 
         if cfg.OPTIONS.INIT_DECODER:
             initialize_weights(self.bot_fine)
@@ -290,8 +290,7 @@ class MscaleV3Plus(MscaleBase):
 
     def _fwd_attn(self, x, cat_s4_attn):
         x_size = x.size()
-        c = cat_s4_attn.shape[1]
-        scale_attn = self.scale_attn(cat_s4_attn.narrow(1,0,int(c/2)))
+        scale_attn = self.scale_attn(cat_s4_attn)
         scale_attn = Upsample(scale_attn, x_size[2:])
 
         if self.attn_2b:
@@ -305,8 +304,7 @@ class MscaleV3Plus(MscaleBase):
 
     def _fwd_attn_rev(self, x, cat_s4_attn):
         x_size = x.size()
-        c = cat_s4_attn.shape[1]
-        scale_attn_rev = self.scale_attn_rev(cat_s4_attn.narrow(1,int(c/2),int(c/2)))
+        scale_attn_rev = self.scale_attn_rev(cat_s4_attn)
         scale_attn_rev = Upsample(scale_attn_rev, x_size[2:])
 
         if self.attn_2b:
