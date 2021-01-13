@@ -65,7 +65,7 @@ class RMILoss(nn.Module):
                  loss_weight_lambda=0.5,
                  lambda_way=1,
                  ignore_index=255,
-                 with_ohem=True):
+                 with_ohem=False):
         super(RMILoss, self).__init__()
         self.num_classes = num_classes
         # radius choices
