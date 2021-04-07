@@ -58,7 +58,7 @@ You could just zip the subfolders for online benchmark submission.
 Example of blended output is as follows,
 ![alt text](imgs/blendseq22000900.png "example inference")
 
-###Pretrained Weights
+### Pretrained Weights
 The link to our trained weights are as follows,
 
     comming soon
