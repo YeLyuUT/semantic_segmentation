@@ -63,6 +63,18 @@ The link to our trained weights are as follows,
 
     comming soon
 
+## Citation
+
+If you use this toolbox or benchmark in your research, please cite this project.
+
+```
+@article{mmdetection,
+  title   = {Bidirectional Multi-scale Attention Networks for Semantic Segmentation of Oblique UAV Imagery},
+  author  = {Ye Lyu and George Vosselman and Gui-Song Xia and Michael Ying Yang},
+  journal = {arXiv preprint arXiv:2102.03099},
+  year    = {2021}
+}
+```
 
 
 
