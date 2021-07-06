@@ -1,0 +1,24 @@
+# Run Evaluation on Cityscapes with a pretrained model
+
+CMD: "python -m torch.distributed.launch --nproc_per_node=1 train.py"
+
+HPARAMS: [
+  {
+   dataset: uavid,
+   cv: 0,
+   syncbn: true,
+   apex: true,
+   fp16: true,
+   bs_val: 1,
+   crop_size: "896,896",
+   crop_overlap: "512,512",
+   eval: test,
+   n_scales: ['0.5,1.0,2.0'],
+   snapshot: "logs/train_uavid_deepv3MS_bimsa/mscaleBiFeatureFusion.DeepV3W38_ATTNCLS_75.pth",
+   arch: mscaleBiFeatureFusion.DeepV3W38_ATTNCLS,
+   result_dir: LOGDIR,
+   dump_for_submission: true,
+   dump_color_submission: true,
+   dump_with_subdir_level: 2,
+  },
+]

@@ -36,16 +36,16 @@ In general, you can either use the runx-style commandlines shown below. Or you c
 
 Train uavid2020, using deeplabV3+ + WRN-38 + bidirectional multi-scale attention with pretrained model
 ```bash
-> python -m runx.runx scripts/train_uavid_deepv3MSBIFF_ATTNCLS.yml -i
+> python -m runx.runx scripts/train_uavid_deepv3MS_bimsa.yml -i
 ```
 
 ## Run inference on UAVid
 
 ```bash
-> python -m runx.runx scripts/eval_uavid_deepv3MS_biff_cls.yml -i
+> python -m runx.runx scripts/eval_uavid_deepv3MS_bimsa.yml -i
 ```
 
-Before running inference, path for the snapshot model needs to be configured in cfg file "eval_uavid_deepv3MS_biff_cls.yml",
+Before running inference, path for the snapshot model needs to be configured in cfg file "eval_uavid_deepv3MS_bimsa.yml",
 
     snapshot: <path_to_file.pth>
 
