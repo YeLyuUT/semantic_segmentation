@@ -51,7 +51,14 @@ Before running inference, path for the snapshot model needs to be configured in 
 
 The output inference will be saved in directory:
 
-    logs/eval_uavid_deepv3MS_bimsa/submit
+    logs/eval_uavid_deepv3MS_bimsa/<random folder name>/submit
+
+The output label images from the model is 8 bit, which need to be converted to 24 bit for evaluation.
+A simple script for conversion is provided. Inplace conversion is applied to all images in the specified folder recursively.
+
+```bash
+> python utils/img_conversion.py -d ./logs/eval_uavid_deepv3MS_bimsa/<random folder name>/submit/
+```
 
 You could just zip the subfolders for online benchmark submission.
 
