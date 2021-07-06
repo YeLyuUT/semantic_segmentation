@@ -59,9 +59,9 @@ Example of blended output is as follows,
 ![alt text](imgs/blendseq22000900.png "example inference")
 
 ### Pretrained Weights
-The link to our trained weights are as follows,
+The link to our trained weights with 70.8% mIoU score are as provided from google drive,
 
-    comming soon
+    https://drive.google.com/file/d/1jMVOHfHtO-z_eIq9cmA2GTo_MPF02ars/view?usp=sharing
 
 ## Citation
 
