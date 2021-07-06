@@ -51,7 +51,7 @@ Before running inference, path for the snapshot model needs to be configured in 
 
 The output inference will be saved in directory:
 
-    logs/eval_uavid_deepv3MS_biff_cls/submit
+    logs/eval_uavid_deepv3MS_bimsa/submit
 
 You could just zip the subfolders for online benchmark submission.
 
